@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Parking System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: url('https://images.unsplash.com/photo-1506521781263-d8422e82f27a?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8cGFya2luZ3xlbnwwfHwwfHx8MA%3D%3D') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+        }
+
+        header {
+            background-color: rgba(51, 51, 51, 0.8);
+            /* Semi-transparent header */
+            color: #fff;
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            /* Semi-transparent white box */
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            color: #333;
+            /* Text color inside the container */
+        }
+
+        .vehicle-info {
+            margin-bottom: 20px;
+        }
+
+        #vehicle-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .qr-code {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Smart Parking Technology</h1>
+    </header>
+    <div class="container">
+        <div class="vehicle-info">
+            <p>Detected Vehicle Number:</p>
+            <p id="vehicle-number">Waiting for vehicle...</p>
+        </div>
+        <div class="qr-code">
+            <canvas id="qrCodeCanvas"></canvas>
+            <p id="payment-status" style="color: green; font-weight: bold; display: none;">Payment Successful!</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script>
+        const ws = new WebSocket('ws://localhost:8080'); // WebSocket server
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            // Update vehicle number
+            if (data.vehicleNumber) {
+                document.getElementById('vehicle-number').textContent = data.vehicleNumber;
+
+                // Generate QR Code for payment
+                const qrCodeCanvas = document.getElementById('qrCodeCanvas');
+                QRCode.toCanvas(qrCodeCanvas, `https://payment-gateway.com/pay?vehicle=${data.vehicleNumber}`, function (error) {
+                    if (error) console.error(error);
+                });
+
+                // Reset payment status
+                document.getElementById('payment-status').style.display = 'none';
+            }
+
+            // Display payment success
+            if (data.paymentStatus === 'success') {
+                document.getElementById('payment-status').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('vehicle-number').textContent = 'Waiting for vehicle...';
+                    const qrCodeCanvas = document.getElementById('qrCodeCanvas');
+                    qrCodeCanvas.getContext('2d').clearRect(0, 0, qrCodeCanvas.width, qrCodeCanvas.height);
+                }, 3000); // Wait 3 seconds before clearing
+            }
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+    </script>
+</body>
+
+</html>
